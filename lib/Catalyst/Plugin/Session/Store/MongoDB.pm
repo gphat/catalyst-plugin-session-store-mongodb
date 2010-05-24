@@ -161,7 +161,7 @@ Cory G Watson, C<< <gphat at cpan.org> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 Cold Hard Code, LLC.
+Copyright 2010 Cory G Watson
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
