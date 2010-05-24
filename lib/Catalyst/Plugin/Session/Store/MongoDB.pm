@@ -20,15 +20,18 @@ __PACKAGE__->mk_classdata('_session_mongodb_coll');
 sub get_session_data {
     my ($c, $key) = @_;
 
+    if(!defined($c->_session_mongodb_conn)) {
+        $c->_mongo_connect;
+    }
+
     if($key =~ /^expires:(.*)/) {
         my $sid = $1;
-        my $data = $c->_session_mongodb_coll->find_one();
+        my $data = $c->_session_mongodb_coll->find_one({ _id => $sid });
 
         if(defined($data)) {
-            # Handle auto-expiry
-            print STDERR "#### ".time." : $sid : ".$data->{expires}."\n";
+            # Handle auto-expiry, delete it if it's expired and return
+            # undef.
             if(time > $data->{expires}) {
-                print STDERR "### Expiring $sid\n";
                 $c->_session_mongodb_coll->remove({ _id => $sid });
                 return undef;
             } else {
@@ -39,6 +42,7 @@ sub get_session_data {
 
     } elsif($key =~ /^session:(.*)/) {
         my $sid = $1;
+        # Assuming it wasn't deleted above, we'll return it.
         my $data = $c->_session_mongodb_coll->find_one({ _id => $sid });
         return thaw(decode_base64($data->{session})) if defined($data);
     }
@@ -49,7 +53,9 @@ sub get_session_data {
 sub store_session_data {
     my ($c, $key, $data) = @_;
 
-    # my $frozen = $c->_data_is_raw($key) ? $data : nfreeze($data);
+    if(!defined($c->_session_mongodb_conn)) {
+        $c->_mongo_connect;
+    }
 
     if($key =~ /^expires:(.*)/) {
         my $sid = $1;
@@ -65,7 +71,6 @@ sub store_session_data {
 sub delete_session_data {
     my ($c, $key) = @_;
 
-    $c->log->debug("Deleting: $key");
     $c->_session_mongodb_coll->remove({ _id => $key });
 
     return;
@@ -140,7 +145,7 @@ Catalyst that uses MongoDB (L<http://www.mongodb.org>).
 
 =item B<Expired Sessions>
 
-This store automatically expires sessions.
+This store automatically expires sessions when they expire.
 
 =back
 
